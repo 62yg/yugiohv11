@@ -9,6 +9,10 @@ util.AddNetworkString("DuelData")
 util.AddNetworkString("UpdateCardPositions")
 
 -- init.lua
+playerDecks = {
+    BasicDeck = {"card1", "card2", "card3", "card4", "card5", "card6", "card7", "card8", "card9", "card10"},
+}
+
 
 function SetPlayerDuelData(ply, duelData)
     ply:SetNWString("DuelData", util.TableToJSON(duelData))
@@ -44,34 +48,45 @@ function CreateBasicDeck(deckSize)
     return basicDeck
 end
 
-
+function AddPlayerDeck(playerName, deck)
+    if not playerName or not deck then return end
+    playerDecks[playerName] = deck
+end
 
 function InitializeDuelData(ply)
-    print("init.lua: Initializing DuelData for player", ply:Nick())
+    if not ply then return end
 
-    if not ply or not ply:IsValid() then return end
+    local defaultDeck = InitializeDeck(ply)
+    local playerDeck = GetPlayerDeck(ply) or defaultDeck
 
-    if not ply.Deck then
+    if not playerDeck or #playerDeck == 0 then
         print("InitializeDuelData: Player " .. ply:Nick() .. " has no deck.")
-        return
+        playerDeck = defaultDeck
     end
 
     local hand = {}
     for i = 1, 5 do
-        local card = table.remove(ply.Deck, 1)
-        table.insert(hand, card)
+        local card = table.remove(playerDeck, 1)
+        if card then
+            table.insert(hand, card)
+            DrawCard(ply) -- Call DrawCard to display the card in the player's hand
+        end
     end
 
     local duelData = {
-        Hand = hand,
-        Deck = ply.Deck,
-        Graveyard = {},
-        Banished = {},
+        deck = playerDeck,
+        hand = hand,
+        field = {},
+        graveyard = {},
+        banished = {}
     }
 
     ply:SetDuelData(duelData)
-    print("init.lua: DuelData JSON after setting:", ply:GetNWString("DuelData", ""))
 end
+
+
+
+
 
 
 
@@ -79,12 +94,9 @@ end
 
 -- init.lua
 
-hook.Add("PlayerInitialSpawn", "InitializeDuelDataAndLoadDeck", function(ply)
-    InitializeDuelData(ply)
-    timer.Simple(1, function()
-        if IsValid(ply) then
-            LoadPlayerDeck(ply)
-        end
+hook.Add("PlayerInitialSpawn", "InitializeDuelDataOnJoin", function(ply)
+    timer.Simple(0, function()
+        InitializeDuelData(ply)
     end)
 end)
 
@@ -157,12 +169,22 @@ util.AddNetworkString("CardMovedToGraveyard")
 
 -- init.lua
 
+
+
 function InitializeDeck(ply)
-    local deck = {
-        "blueeyeswhitedragon",
-        "darkmagician",
-        "monster_reborn",
-		"darkmagician",
+    if not ply or not IsValid(ply) then return end
+
+    local deckID = ply:SteamID64()
+    if not deckID or deckID == "" then
+        print("InitializeDeck: Invalid DeckID for player " .. ply:Nick())
+        return
+    end
+
+    ply:SetNWString("DeckID", deckID)
+
+    if not playerDecks[deckID] then
+        local defaultDeck = {
+            "blueeyeswhitedragon", "darkmagician", "monster_reborn","darkmagician",
 		"darkmagician",
 		"darkmagician",
 		"darkmagician",
@@ -199,20 +221,14 @@ function InitializeDeck(ply)
 		"darkmagician",
 		"darkmagician",
 		"darkmagician"
-        -- Add more card names here, until you have 40 cards in the deck
-    }
-
-    local duelData = {
-        deck = deck,
-        hand = {},
-        field = {},
-        graveyard = {},
-        banished = {}
-    }
-
-    ply:SetDuelData(duelData)
-    UpdateDuelData(ply)
+		
+            -- Add the other 37 default cards here
+        }
+        playerDecks[deckID] = table.Copy(defaultDeck)
+    end
 end
+
+
 
 
 
@@ -336,16 +352,26 @@ end
 -- init.lua
 
 function GetPlayerDeck(ply)
-    if ply:GetNW2Var("DuelData") == nil then
-        return {}
+    if not IsValid(ply) or not ply:IsPlayer() then return nil end
+    local deckID = ply:GetNWString("DeckID", "")
+
+    if deckID == "" then
+        print("GetPlayerDeck: DeckID is empty for player " .. ply:Nick())
+        return nil
     end
 
-    local duelData = ply:GetNW2Var("DuelData")
-    return duelData.Deck
+    local deck = playerDecks[deckID]
+
+    if not deck then
+        print("GetPlayerDeck: Deck not found for player " .. ply:Nick())
+        return nil
+    end
+
+    return table.Copy(deck)
 end
 
 
--- init.lua
+
 
 function SavePlayerDeck(ply)
     local steamID = ply:SteamID64()

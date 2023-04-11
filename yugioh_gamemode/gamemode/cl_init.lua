@@ -578,14 +578,36 @@ end)
 
 
 function DrawCard(player)
+    print("DrawCard called for player:", player:Nick()) -- Debug print
+
     local handZone = playerZones[player:EntIndex()].HandZone
     local card = vgui.Create("DImage", handZone)
+    
+    local duelData = GetDuelData(player)
+    
+    if not duelData or not duelData.hand or #duelData.hand == 0 then
+        print("DrawCard: Hand is empty or nil for player", player:Nick())
+        return
+    end
+
+    local cardName = duelData.hand[1] -- Get the first card from the player's hand
+    local cardImagePath = GetCardImagePath(cardName)
+    print("Card image path:", cardImagePath) -- Debug print
+    
     card:SetSize(80, 120)
-    card:SetImage("path/to/card/image") -- Replace this with the actual path to the card image
+    card:SetImage(cardImagePath)
     card:SetPos(#handZone:GetChildren() * 90, 0)
 
     handZone:AddItem(card)
+
+    -- Remove the drawn card from the player's hand
+    table.remove(duelData.hand, 1)
+    SetDuelData(player, duelData)
 end
+
+
+
+
 
 function LoadCardTextures()
     cardTextures = {}
@@ -699,9 +721,10 @@ hook.Add("HUDPaint", "RenderCardsOnHUD", function()
 
     local duelData = ply:GetDuelData()
 
-    if not duelData then return end
+    if not duelData then return  end
+	
 
-    print("HUDPaint: DuelData for player " .. ply:Nick())
+    --print("HUDPaint: DuelData for player " .. ply:Nick())
     PrintTable(duelData)
 
     if not duelData then
@@ -751,3 +774,6 @@ hook.Add("PostDrawOpaqueRenderables", "DrawCards", function()
     end
 end)
 
+function GetCardImagePath(cardName)
+    return "yugioh_gamemode/materials/card_images/" .. cardName .. ".jpg"
+end
