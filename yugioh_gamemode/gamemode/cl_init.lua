@@ -820,3 +820,40 @@ function GM:BeginTurn()
         end
     end
 end
+
+
+function InitializePlayerZones(ply)
+    local duelData = {
+        hand = {},
+        monsterZones = {},
+        spellTrapZones = {},
+        fieldZone = {},
+        graveyard = {},
+        banished = {},
+        extraDeck = {},
+        mainDeck = {}
+    }
+
+    for i = 1, 5 do
+        duelData.monsterZones[i] = "Empty"
+        duelData.spellTrapZones[i] = "Empty"
+    end
+
+    for i = 1, 40 do
+        duelData.mainDeck[i] = "Main " .. i
+    end
+
+    for i = 1, 15 do
+        duelData.extraDeck[i] = "Extra " .. i
+    end
+
+    for i = 1, 6 do
+        duelData.hand[i] = "Hand " .. i
+    end
+
+    duelData.fieldZone = "Empty"
+    duelData.graveyard = "Empty"
+    duelData.banished = "Empty"
+
+    ply:SetDuelData(duelData)
+end
