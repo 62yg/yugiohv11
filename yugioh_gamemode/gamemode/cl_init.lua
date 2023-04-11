@@ -578,36 +578,20 @@ end)
 
 
 function DrawCard(player)
-    print("DrawCard called for player:", player:Nick()) -- Debug print
+    local duel_data = GetDuelData(player)
 
-    if not playerZones or not IsValid(playerZones[player:EntIndex()].HandZone) then
-        InitializePlayerZones(player)
+    if duel_data and duel_data.deck and #duel_data.deck > 0 then
+        local card_name = table.remove(duel_data.deck, 1)
+        table.insert(duel_data.hand, card_name)
+        SetDuelData(player, duel_data)
+        return card_name
+    else
+        PrintToConsole("DrawCard: Deck is empty or nil for player " .. player:GetName())
+        PrintDuelData(player)
+        return nil
     end
-
-    local handZone = playerZones[player:EntIndex()].HandZone
-    local card = vgui.Create("DImage", handZone)
-
-    local duelData = GetDuelData(player)
-
-    if not duelData or not duelData.hand or #duelData.hand == 0 then
-        print("DrawCard: Hand is empty or nil for player", player:Nick())
-        return
-    end
-
-    local cardName = duelData.hand[1] -- Get the first card from the player's hand
-    local cardImagePath = GetCardImagePath(cardName)
-    print("Card image path:", cardImagePath) -- Debug print
-
-    card:SetSize(80, 120)
-    card:SetImage(cardImagePath)
-    card:SetPos(#handZone:GetChildren() * 90, 0)
-
-    handZone:AddItem(card)
-
-    -- Remove the drawn card from the player's hand
-    table.remove(duelData.hand, 1)
-    SetDuelData(player, duelData)
 end
+
 
 
 
