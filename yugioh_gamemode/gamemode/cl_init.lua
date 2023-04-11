@@ -580,11 +580,15 @@ end)
 function DrawCard(player)
     print("DrawCard called for player:", player:Nick()) -- Debug print
 
+    if not playerZones or not IsValid(playerZones[player:EntIndex()].HandZone) then
+        InitializePlayerZones(player)
+    end
+
     local handZone = playerZones[player:EntIndex()].HandZone
     local card = vgui.Create("DImage", handZone)
-    
+
     local duelData = GetDuelData(player)
-    
+
     if not duelData or not duelData.hand or #duelData.hand == 0 then
         print("DrawCard: Hand is empty or nil for player", player:Nick())
         return
@@ -593,7 +597,7 @@ function DrawCard(player)
     local cardName = duelData.hand[1] -- Get the first card from the player's hand
     local cardImagePath = GetCardImagePath(cardName)
     print("Card image path:", cardImagePath) -- Debug print
-    
+
     card:SetSize(80, 120)
     card:SetImage(cardImagePath)
     card:SetPos(#handZone:GetChildren() * 90, 0)
@@ -604,6 +608,7 @@ function DrawCard(player)
     table.remove(duelData.hand, 1)
     SetDuelData(player, duelData)
 end
+
 
 
 
@@ -714,6 +719,20 @@ function GetCardPositionAndAngles(index)
 end
 
 
+function GM:HUDPaint()
+    local ply = LocalPlayer()
+    local duelData = ply:GetDuelData()
+
+    if duelData.hand then
+        for i, card in ipairs(duelData.hand) do
+            local x, y = (i - 1) * 110, ScrH() - 200
+            draw.SimpleText(card, "Trebuchet24", x, y, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP)
+        end
+    end
+end
+
+
+
 
 hook.Add("HUDPaint", "RenderCardsOnHUD", function()
     local ply = LocalPlayer()
@@ -776,4 +795,28 @@ end)
 
 function GetCardImagePath(cardName)
     return "yugioh_gamemode/materials/card_images/" .. cardName .. ".jpg"
+end
+
+
+hook.Add("PlayerInitialSpawn", "InitializeZonesOnInitialSpawn", function(ply)
+    if CLIENT then
+        InitializePlayerZones(ply)
+    end
+end)
+
+function GM:BeginTurn()
+    local ply = LocalPlayer()
+    local duelData = GetDuelData(ply)
+    
+    if duelData then
+        local currentPlayer = duelData.CurrentPlayer
+        local opponent = duelData.Opponent
+
+        if currentPlayer == ply:EntIndex() then
+            DrawCard(ply)
+            print("Performing turn for " .. ply:Nick())
+        elseif opponent == ply:EntIndex() then
+            print("Waiting for opponent's turn...")
+        end
+    end
 end

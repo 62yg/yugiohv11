@@ -217,24 +217,6 @@ end
 
 -- shared.lua
 
-function GM:HUDPaint()
-    local ply = LocalPlayer()
-    local duelData = ply:GetDuelData()
-
-    if not duelData then return end
-
-    local x, y = 20, ScrH() - 100
-
-    for _, cardID in ipairs(duelData.hand or {}) do
-        local cardName = GetCardName(cardID) -- Assuming GetCardName is available and working
-        draw.SimpleText(cardName, "DermaLarge", x, y, Color(255, 255, 255), TEXT_ALIGN_LEFT, TEXT_ALIGN_BOTTOM)
-        y = y - 30
-    end
-end
-
-
--- shared.lua
-
 function RenderHand(ply, hand)
     if not hand then return end
 
@@ -295,31 +277,11 @@ end
 
 
 
-
-
 function PLAYER:GetDuelData()
-    if not ply or not ply:IsValid() then return {} end
-
-    local duelDataJson = ply:GetNWString("DuelData", "")
-    if duelDataJson == "" then
-        print("GetDuelData: DuelData is empty for player " .. ply:Nick())
-        return {}
-    end
-
-    local duelData = util.JSONToTable(duelDataJson)
-    if not duelData then
-        print("GetDuelData: Failed to parse DuelData JSON for player " .. ply:Nick())
-        return {}
-    end
-
-    return duelData
+    local duelData = self:GetNWString("duelData", "{}")
+    local data = util.JSONToTable(duelData) or {}
+    return data
 end
-
-
-
-
-
-
 
 
 
